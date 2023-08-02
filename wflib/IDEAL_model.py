@@ -46,7 +46,7 @@ def gen_M(te,get_Mpinv=True,get_P0=False):
 
 @tf.function
 def IDEAL_model(out_maps):
-    n_batch,_,hgt,wdt,_ = out_maps.shape
+    n_batch,hgt,wdt,_ = out_maps.shape
     ne = 6
     
     te = np.arange(start=1.3e-3,stop=12*1e-3,step=2.1e-3)
@@ -70,7 +70,7 @@ def IDEAL_model(out_maps):
     phi = out_maps[:,:,:,5]
 
     # IDEAL Operator evaluation for xi = phi + 1j*r2s/(2*np.pi)
-    xi = tf.complex(phi,r2s_pi/(2*np.pi)) * fm_sc #/(2*np.pi))
+    xi = tf.complex(phi,r2s/(2*np.pi)) * fm_sc #/(2*np.pi))
     xi_rav = tf.reshape(xi,[n_batch,-1])
     xi_rav = tf.expand_dims(xi_rav,-1) # (nb,nv,1)
 
@@ -92,7 +92,6 @@ def IDEAL_model(out_maps):
     im_stack = tf.stack([zero_fill,Im_gt],4)
     im_aux = tf.reshape(im_stack,[n_batch,hgt,wdt,2*ne])
     res_gt = re_aux + im_aux
-    return (res_rho,res_gt)
     
     return res_gt
 
