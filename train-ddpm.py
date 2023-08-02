@@ -201,8 +201,8 @@ for ep in range(args.epochs):
     aux_f = np.abs(tf.squeeze(tf.complex(x[:,:,:,2],x[:,:,:,3])))
     aux_ff = aux_f/(aux_w+aux_f)
     aux_ff[np.isnan(aux_ff)] = 0.0
-    aux_r2s = np.abs(tf.squeeze(x[:,:,:,4]))*r2_sc
-    aux_phi = np.abs(tf.squeeze(x[:,:,:,5]))*fm_sc
+    aux_r2s = tf.squeeze(x[:,:,:,4])*r2_sc
+    aux_phi = tf.squeeze(x[:,:,:,5])*fm_sc
     
     acq_ax= axs[0,0].imshow(aux_im, cmap='gist_earth', interpolation='none', vmin=0, vmax=1)
     fig.colorbar(acq_ax, ax=axs[0,0])
