@@ -22,7 +22,7 @@ py.arg('--n_filters', type=int, default=64)
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_ckpt', type=int, default=10)  # num. of epochs to save a checkpoint
-py.arg('--lr', type=float, default=0.0002)
+py.arg('--lr', type=float, default=0.0001)
 args = py.args()
 
 # output_dir
@@ -36,8 +36,6 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-
-A2B2A_pool = data.ItemPool(args.pool_size)
 
 ech_idx = args.n_echoes * 2
 r2_sc, fm_sc = 200.0, 300.0
