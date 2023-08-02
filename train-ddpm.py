@@ -193,6 +193,9 @@ for ep in range(args.epochs):
         with train_summary_writer.as_default():
             tl.summary(lLoss_dict, step=opt.iterations, name='Losses')
 
+    if (((ep+1) % args.epoch_ckpt) == 0) or ((ep+1)==args.epochs):
+        ckpt_manager.save(checkpoint_number=ep+1)
+
     # Validation inference
     x_T = tf.random.normal((1,hgt,wdt,n_out))
     x = validation_step(x_T)
