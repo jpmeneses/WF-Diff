@@ -20,6 +20,7 @@ py.arg('--n_filters', type=int, default=64)
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_ckpt', type=int, default=10)  # num. of epochs to save a checkpoint
+py.arg('--data_augmentation', type=bool, default=True)
 py.arg('--lr', type=float, default=0.0001)
 args = py.args()
 
@@ -155,21 +156,24 @@ for ep in range(args.epochs):
         # =                             DATA AUGMENTATION                              =
         # ==============================================================================
         for i in range(X.shape[0]):
-            X_i = X[i,:,:,:]
-            p = np.random.rand()
-            if p <= 0.4:
-                # Random 90 deg rotations
-                X_i = tf.image.rot90(X_i,k=np.random.randint(3))
+            if args.data_augmentation:
+                X_i = X[i,:,:,:]
+                p = np.random.rand()
+                if p <= 0.4:
+                    # Random 90 deg rotations
+                    X_i = tf.image.rot90(X_i,k=np.random.randint(3))
 
-                # Random horizontal reflections
-                X_i = tf.image.random_flip_left_right(X_i)
+                    # Random horizontal reflections
+                    X_i = tf.image.random_flip_left_right(X_i)
 
-                # Random vertical reflections
-                X_i = tf.image.random_flip_up_down(X_i)
-            if i <= 0:
-                X_da = tf.expand_dims(X_i,axis=0)
+                    # Random vertical reflections
+                    X_i = tf.image.random_flip_up_down(X_i)
+                if i <= 0:
+                    X_da = tf.expand_dims(X_i,axis=0)
+                else:
+                    X_da = tf.concat([X_da, tf.expand_dims(X_i, axis=0)],axis=0)
             else:
-                X_da = tf.concat([X_da, tf.expand_dims(X_i, axis=0)],axis=0)
+                X_da = X
         # ==============================================================================
 
         # ==============================================================================
