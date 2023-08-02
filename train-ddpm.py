@@ -42,8 +42,8 @@ dataset_dir = '../datasets/'
 dataset_hdf5_1 = 'JGalgani_GC_192_complex_2D.hdf5'
 out_maps_1 = data.load_hdf5(dataset_dir, dataset_hdf5_1, acqs_data=False)
 
-dataset_hdf5_2 = 'INTA_GC_192_complex_2D.hdf5'
-out_maps_2 = data.load_hdf5(dataset_dir, dataset_hdf5_2, end=10, acqs_data=False)
+# dataset_hdf5_2 = 'INTA_GC_192_complex_2D.hdf5'
+# out_maps_2 = data.load_hdf5(dataset_dir, dataset_hdf5_2, acqs_data=False)
 
 dataset_hdf5_3 = 'INTArest_GC_192_complex_2D.hdf5'
 out_maps_3 = data.load_hdf5(dataset_dir, dataset_hdf5_3, acqs_data=False)
@@ -59,7 +59,7 @@ out_maps_5 = data.load_hdf5(dataset_dir, dataset_hdf5_5, acqs_data=False)
 ################################################################################
 
 trainX  = np.concatenate((out_maps_1,out_maps_3,out_maps_4,out_maps_5),axis=0)
-valX    = out_maps_2
+# valX    = out_maps_2
 
 # Overall dataset statistics
 len_dataset,hgt,wdt,n_out = np.shape(trainX)
@@ -69,8 +69,6 @@ print('Num. Output Maps:',n_out)
 
 X_dataset = tf.data.Dataset.from_tensor_slices(trainX)
 X_dataset = X_dataset.batch(args.batch_size).shuffle(len_dataset)
-X_dataset_val = tf.data.Dataset.from_tensor_slices(valX)
-X_dataset_val.batch(1)
 
 ################################################################################
 ########################### DIFFUSION TIMESTEPS ################################
