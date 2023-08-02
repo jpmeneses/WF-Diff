@@ -7,5 +7,4 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jpmeneses@uc.cl	
 
-pip install einops
 python train-ddpm.py --experiment_dir 'DDPM-000' --epochs 30 --epoch_ckpt 5
