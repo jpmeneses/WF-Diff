@@ -1,16 +1,14 @@
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import tqdm
 
 import data
 import imlib as im
 import DLlib as dl
 import DMlib as dm
 import pylib as py
+import tf2lib as tl
 import wflib as wf
-
-from utils import *
 
 # ==============================================================================
 # =                                   param                                    =
@@ -37,27 +35,24 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-ech_idx = args.n_echoes * 2
-r2_sc, fm_sc = 200.0, 300.0
-
 ################################################################################
 ######################### DIRECTORIES AND FILENAMES ############################
 ################################################################################
 dataset_dir = '../datasets/'
 dataset_hdf5_1 = 'JGalgani_GC_192_complex_2D.hdf5'
-out_maps_1 = data.load_hdf5(dataset_dir, dataset_hdf5_1)
+out_maps_1 = data.load_hdf5(dataset_dir, dataset_hdf5_1, acqs_data=False)
 
 dataset_hdf5_2 = 'INTA_GC_192_complex_2D.hdf5'
-out_maps_2 = data.load_hdf5(dataset_dir, dataset_hdf5_2)
+out_maps_2 = data.load_hdf5(dataset_dir, dataset_hdf5_2, end=10, acqs_data=False)
 
 dataset_hdf5_3 = 'INTArest_GC_192_complex_2D.hdf5'
-out_maps_3 = data.load_hdf5(dataset_dir, dataset_hdf5_3)
+out_maps_3 = data.load_hdf5(dataset_dir, dataset_hdf5_3, acqs_data=False)
 
 dataset_hdf5_4 = 'Volunteers_GC_192_complex_2D.hdf5'
-out_maps_4 = data.load_hdf5(dataset_dir, dataset_hdf5_4)
+out_maps_4 = data.load_hdf5(dataset_dir, dataset_hdf5_4, acqs_data=False)
 
 dataset_hdf5_5 = 'Attilio_GC_192_complex_2D.hdf5'
-out_maps_5 = data.load_hdf5(dataset_dir, dataset_hdf5_5)
+out_maps_5 = data.load_hdf5(dataset_dir, dataset_hdf5_5, acqs_data=False)
 
 ################################################################################
 ########################### DATASET PARTITIONS #################################
@@ -73,7 +68,7 @@ print('Image Dimensions:', hgt,wdt)
 print('Num. Output Maps:',n_out)
 
 X_dataset = tf.data.Dataset.from_tensor_slices(trainX)
-X_dataset = A_B_dataset.batch(args.batch_size).shuffle(len_dataset)
+X_dataset = X_dataset.batch(args.batch_size).shuffle(len_dataset)
 X_dataset_val = tf.data.Dataset.from_tensor_slices(valX)
 X_dataset_val.batch(1)
 
@@ -91,18 +86,6 @@ alpha_bar = np.concatenate((np.array([1.]), alpha_bar[:-1]), axis=0)
 
 # create our unet model
 unet = dl.Unet(dim=args.n_filters, channels=n_out)
-
-# create our checkopint manager
-ckpt = tf.train.Checkpoint(unet=unet)
-ckpt_manager = tf.train.CheckpointManager(ckpt, py.join("./output",args.experiment_dir,"checkpoints") , max_to_keep=2) #"./checkpoints"
-
-# load from a previous checkpoint if it exists, else initialize the model from scratch
-if ckpt_manager.latest_checkpoint:
-    ckpt.restore(ckpt_manager.latest_checkpoint)
-    start_interation = int(ckpt_manager.latest_checkpoint.split("-")[-1])
-    print("Restored from {}".format(ckpt_manager.latest_checkpoint))
-else:
-    print("Initializing from scratch.")
 
 # initialize the model in the memory of our GPU
 test_images = np.ones([1, hgt, wdt, n_out])
@@ -140,15 +123,25 @@ def validation_step(X):
 # epoch counter
 ep_cnt = tf.Variable(initial_value=0, trainable=False, dtype=tf.int64)
 
+# checkpoint
+checkpoint = tl.Checkpoint(dict(unet=unet,
+                                optimizer=opt,
+                                ep_cnt=ep_cnt),
+                           py.join(output_dir, 'checkpoints'),
+                           max_to_keep=5)
+try:  # restore checkpoint including the epoch counter
+    checkpoint.restore().assert_existing_objects_matched()
+except Exception as e:
+    print(e)
+
 # summary
-train_summary_writer = tf.summary.create_file_writer(py.join(output_dir, 'summaries', 'train'))
-val_summary_writer = tf.summary.create_file_writer(py.join(output_dir, 'summaries', 'validation'))
+train_summary_writer = tf.summary.create_file_writer(py.join(output_dir, 'summaries'))
 
 # sample
-val_iter = cycle(A_B_dataset_val)
 sample_dir = py.join(output_dir, 'samples_training')
 py.mkdir(sample_dir)
-n_div = np.ceil(total_steps/len(valX))
+
+r2_sc, fm_sc = 200.0, 300.0
 
 # main loop
 for ep in range(args.epochs):
@@ -164,7 +157,7 @@ for ep in range(args.epochs):
         # =                             DATA AUGMENTATION                              =
         # ==============================================================================
         for i in range(X.shape[0]):
-            X_i = tf.squeeze(X[i,:,:,:], axis=0)
+            X_i = X[i,:,:,:]
             p = np.random.rand()
             if p <= 0.4:
                 # Random 90 deg rotations
@@ -189,10 +182,10 @@ for ep in range(args.epochs):
 
         # summary
         with train_summary_writer.as_default():
-            tl.summary(lLoss_dict, step=opt.iterations, name='Losses')
+            tl.summary(loss_dict, step=opt.iterations, name='Losses')
 
     if (((ep+1) % args.epoch_ckpt) == 0) or ((ep+1)==args.epochs):
-        ckpt_manager.save(checkpoint_number=ep+1)
+        checkpoint.save(ep)
 
     # Validation inference
     x_T = tf.random.normal((1,hgt,wdt,n_out))
@@ -227,10 +220,9 @@ for ep in range(args.epochs):
     phi_ax = axs[1,2].imshow(aux_phi, cmap='twilight', interpolation='none', vmin=-fm_sc, vmax=fm_sc)
     fig.colorbar(phi_ax, ax=axs[1,2])
     axs[1,2].axis('off')
-    plt.show()
 
     plt.subplots_adjust(top=1,bottom=0,right=1,left=0,hspace=0.1,wspace=0)
-    make_space_above(axs,topmargin=0.8)
+    tl.make_space_above(axs,topmargin=0.8)
     plt.savefig(py.join(sample_dir, 'ep-%03d.png' % (ep+1)), bbox_inches = 'tight', pad_inches = 0)
     plt.close(fig)
 
