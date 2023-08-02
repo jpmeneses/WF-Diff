@@ -20,7 +20,7 @@ py.arg('--n_filters', type=int, default=64)
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_ckpt', type=int, default=10)  # num. of epochs to save a checkpoint
-py.arg('--data_augmentation', type=bool, default=True)
+py.arg('--data_augmentation', type=bool, default=False)
 py.arg('--lr', type=float, default=0.0001)
 args = py.args()
 
